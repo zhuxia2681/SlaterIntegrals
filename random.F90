@@ -1,12 +1,10 @@
 subroutine rand(rnd)
-
-  use number
  
   implicit none
 
-  real(dp),intent(out) :: rnd
-  integer :: i,seedsize
-  integer,allocatable :: seed(:)
+  real(8),intent(out) :: rnd
+  integer(4) :: i,seedsize
+  integer(4),allocatable :: seed(:)
   
   call random_seed(size=seedsize)
   allocate(seed(seedsize))

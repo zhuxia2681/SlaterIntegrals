@@ -24,7 +24,7 @@ program scp
 
 !// read input
   character(7) :: tmpchar
-  character(20) :: fname
+  character(20) :: fname,fname1,fname2
   character(10) :: form
   logical :: uc,sc,renorm
   real(8) :: uco(3),sco(3),ucv(3,3),scv(3,3)
@@ -34,8 +34,7 @@ program scp
   integer(4) :: ucu,scu
   integer(4) :: rank,ierr,size
 !JDY 2021.2.25 MPI
-  integer(4) :: tag,stat,ii,jj,chkrank
-  integer(4) :: flag1,flag2,flag3
+  integer(4) :: tag,stat,ii,jj,flag
 !//
   real(8) :: vol,origin(3),span(3,3),stepvec(3,3)
   real(8) :: vol1,origin1(3),span1(3,3),stepvec1(3,3)
@@ -107,8 +106,13 @@ program scp
   size = 1
 #endif
 
-  if (rank == 0) call clock_start(t1)
-
+  flag = 0
+  if (size == 1 .and. rank == 0) then 
+    call clock_start(t1)
+  elseif (size /= 0 .and. flag == 0) then
+    call clock_start(t1)
+    flag = 1
+  endif
 
   allocate(ravg(2*NCELL+1,2*NCELL+1,2*NCELL+1))
   ravg = 0.0
@@ -132,6 +136,8 @@ program scp
       if (info /= 0) then
         write(*,*) " error: par_read_cell ifile =",ifile
       end if
+!debug
+      write(*,*) " fname ",fname
 
       info = 0
       call read_xsf(fname,ngrid,origin,span,val,stepvec,info)
@@ -194,55 +200,9 @@ program scp
       end if
     end do
   end if
-#ifdef PARA
-!  if (rank == 0) then
 
-  call MPI_Barrier(MPI_COMM_WORLD,ierr)
-  call MPI_Bcast(ngrid1,3,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-  call MPI_Bcast(ngrid2,3,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
 !debug
-  write(*,*) " rank ",rank
-  if (rank /= 0) then
-    allocate(val1(ngrid1(1),ngrid1(2),ngrid1(3)))
-    allocate(val2(ngrid2(1),ngrid2(2),ngrid2(3)))
-  end if
-!    val1 = 0.0
-!    val2 = 0.0
-    do i = 1, ngrid1(1)
-      do j = 1, ngrid1(2)
-        do k = 1, ngrid1(3)
-          call MPI_Bcast(val1(i,j,k),1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-        end do
-      end do
-    end do
-    call MPI_Barrier(MPI_COMM_WORLD,ierr)
-    call MPI_Bcast(l1,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-    call MPI_Bcast(l2,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-    call MPI_Bcast(m1,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-    call MPI_Bcast(m2,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-    call MPI_Bcast(origin1,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-    call MPI_Bcast(origin2,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-    do i = 1, 3
-      call MPI_Bcast(stepvec1(i,:),3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-    end do
-    do i = 1, 3
-      call MPI_Bcast(stepvec2(i,:),3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-    end do
-!debug
-if (rank /= 0) then
-  write(*,*) " stepvec1",stepvec1
-  write(*,*) " stepvec2",stepvec2
-end if
-    do i = 1, ngrid2(1)
-      do j = 1, ngrid2(2)
-        do k = 1, ngrid2(3)
-          call MPI_Bcast(val2(i,j,k),1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-        end do
-      end do
-    end do
-    call MPI_Barrier(MPI_COMM_WORLD,ierr)
-!  end if
-#endif
+write(*,*) " rank,val1(2,2,2)",rank,val1(2,2,2)
 
   if (rank == 0) then
       write(*,*)
@@ -285,9 +245,39 @@ end if
     end if
   end if
 
-
+  flag = 0
 #ifdef PARA
-  call MPI_Bcast(offset,3,MPI_REAL,0,MPI_COMM_WORLD,ierr)
+  if (flag ==0) then
+    call mp_bcast(l1,1,rank,ierr)
+    call mp_bcast(l2,1,rank,ierr)
+    call mp_bcast(m1,1,rank,ierr)
+    call mp_bcast(m2,1,rank,ierr)
+    do i = 1, 3
+      call mp_bcast(ngrid1(i),1,rank,ierr)
+      call mp_bcast(ngrid2(i),1,rank,ierr)
+      call mp_bcast(origin1(i),1,rank,ierr)
+      call mp_bcast(origin2(i),1,rank,ierr)
+      call mp_bcast(offset(i),1,rank,ierr)
+    end do
+    do i = 1, 3
+      do j = 1, 3
+        call mp_bcast(stepvec1(i,j),1,rank,ierr)
+        call mp_bcast(stepvec2(i,j),1,rank,ierr)
+      end do
+    end do
+    flag = 1
+  end if
+!  call MPI_Bcast(l1,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(l2,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(m1,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(m2,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(ngrid1,3,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(ngrid2,3,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(origin1,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(origin2,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(stepvec1,9,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(stepvec2,9,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(offset,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
 #endif
 
 

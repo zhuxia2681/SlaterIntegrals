@@ -1,7 +1,5 @@
 module mp
 
-  use number
-
   implicit none
 
 #ifdef PARA
@@ -25,7 +23,7 @@ subroutine mp_ini(ierr)
 
   implicit none
 
-  integer,intent(out) :: ierr
+  integer(4),intent(out) :: ierr
   
   call MPI_init(ierr)
   if (ierr /= 0) then
@@ -40,7 +38,7 @@ subroutine mp_fin(ierr)
 
   implicit none
 
-  integer,intent(out) :: ierr
+  integer(4),intent(out) :: ierr
   
   call MPI_finalize(ierr)
   if (ierr /= 0) then
@@ -54,7 +52,7 @@ subroutine mp_info(rank,size,ierr)
 
   implicit none
 
-  integer,intent(out) :: rank,size,ierr
+  integer(4),intent(out) :: rank,size,ierr
 
 #ifdef PARA
   call MPI_COMM_RANK(MPI_COMM_WORLD,rank,ierr)
@@ -79,9 +77,9 @@ subroutine mp_bcast_int(val,n,rank,ierr)
 
   implicit none
 
-  integer,intent(inout) :: val
-  integer,intent(in) :: n,rank
-  integer,intent(out) :: ierr
+  integer(4),intent(inout) :: val
+  integer(4),intent(in) :: n,rank
+  integer(4),intent(out) :: ierr
 
 #ifdef PARA
 
@@ -97,9 +95,9 @@ subroutine mp_bcast_real(val,n,rank,ierr)
 
   implicit none
 
-  real,intent(inout) :: val
-  integer,intent(in) :: n,rank
-  integer,intent(out) :: ierr
+  real(8),intent(inout) :: val
+  integer(4),intent(in) :: n,rank
+  integer(4),intent(out) :: ierr
 
 #ifdef PARA
 
@@ -115,10 +113,9 @@ subroutine mp_bcast_double(val,n,rank,ierr)
 
   implicit none
 
-!double!
-  real(dp),intent(inout) :: val
-  integer,intent(in) :: n,rank
-  integer,intent(out) :: ierr
+  real(16),intent(inout) :: val
+  integer(4),intent(in) :: n,rank
+  integer(4),intent(out) :: ierr
 
 #ifdef PARA
 
@@ -134,9 +131,9 @@ subroutine mp_bcast_cplx(val,n,rank,ierr)
 
   implicit none
 
-  complex(kind(0d0)),intent(inout) :: val
-  integer,intent(in) :: n,rank
-  integer,intent(out) :: ierr
+  complex(16),intent(inout) :: val
+  integer(4),intent(in) :: n,rank
+  integer(4),intent(out) :: ierr
 
 #ifdef PARA
 
@@ -153,8 +150,8 @@ subroutine mp_bcast_logical(val,n,rank,ierr)
   implicit none
 
   logical,intent(inout) :: val
-  integer,intent(in) :: n,rank
-  integer,intent(out) :: ierr
+  integer(4),intent(in) :: n,rank
+  integer(4),intent(out) :: ierr
 
 #ifdef PARA
 
@@ -171,8 +168,8 @@ subroutine mp_bcast_char(val,n,rank,ierr)
   implicit none
 
   character(256),intent(inout) :: val
-  integer,intent(in) :: n,rank
-  integer,intent(out) :: ierr
+  integer(4),intent(in) :: n,rank
+  integer(4),intent(out) :: ierr
 
 #ifdef PARA
 
@@ -189,9 +186,9 @@ subroutine mp_send(val,n,rank,tag,ierr)
 
   implicit none
 
-  real(dp),intent(inout) :: val
-  integer,intent(in) :: rank,n,tag
-  integer,intent(out) :: ierr
+  real(8),intent(inout) :: val
+  integer(4),intent(in) :: rank,n,tag
+  integer(4),intent(out) :: ierr
    
 
 #ifdef PARA
@@ -206,9 +203,9 @@ subroutine mp_recv(val,n,tag,stat,ierr)
 
   implicit none
 
-  real(dp),intent(inout) :: val
-  integer,intent(in) :: n,tag
-  integer,intent(out) :: stat,ierr
+  real(8),intent(inout) :: val
+  integer(4),intent(in) :: n,tag
+  integer(4),intent(out) :: stat,ierr
    
 
 #ifdef PARA
@@ -223,9 +220,9 @@ subroutine mp_reduce(val1,val2,n,ierr)
 
   implicit none
 
-  real(dp),intent(inout) :: val1,val2
-  integer,intent(in) :: n
-  integer,intent(out) :: ierr
+  real(8),intent(inout) :: val1,val2
+  integer(4),intent(in) :: n
+  integer(4),intent(out) :: ierr
   
 #ifdef PARA
   call MPI_Reduce(val1,val2,n,MPI_DOUBLE_PRECISION,MPI_SUM,0,MPI_COMM_WORLD,ierr)
@@ -240,7 +237,7 @@ subroutine mp_barrier(ierr)
 
   implicit none
 
-  integer,intent(in) :: ierr
+  integer(4),intent(in) :: ierr
 
   call MPI_Barrier(MPI_COMM_WORLD,ierr)
 

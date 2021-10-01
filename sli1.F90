@@ -2,7 +2,6 @@ module sli1
 
   use number
   use numerical
-  use io
 
   contains
 
@@ -19,23 +18,18 @@ subroutine ferdi(l,m,wan,ngrid,offset,stepvec,Rnl)
   implicit none
 
 !  complex(8),allocatable,intent(in) :: wan(:,:,:)
-  real(dp),allocatable,intent(in) :: wan(:,:,:)
-  real(dp),intent(in) :: stepvec(3,3),offset(3)
-  integer,intent(in) :: l,m,ngrid(3)
+  real(8),allocatable,intent(in) :: wan(:,:,:)
+  real(8),intent(in) :: stepvec(3,3),offset(3)
+  integer(4),intent(in) :: l,m,ngrid(3)
 
-  complex(dp),allocatable,intent(out) :: Rnl(:,:,:)
+  complex(8),allocatable,intent(out) :: Rnl(:,:,:)
 
-  integer :: i,j,k,nx,ny,nz
-  real(dp) :: x,y,z,r,theta,phi
-  complex(dp) :: valZlm,valylm
-  real(dp),allocatable :: valZlm_r(:,:,:),valZlm_i(:,:,:)
-  real(dp),allocatable :: gridvec(:,:,:,:)
+  integer(4) :: i,j,k,nx,ny,nz
+  real(8) :: x,y,z,r,theta,phi
+  complex(8) :: valZlm,valylm
+  real(8),allocatable :: gridvec(:,:,:,:)
   
-  character(20) :: fname
-
   allocate(Rnl(ngrid(1),ngrid(2),ngrid(3)))
-  allocate(valZlm_r(ngrid(1),ngrid(2),ngrid(3)))
-  allocate(valZlm_i(ngrid(1),ngrid(2),ngrid(3)))
 
   call grid_vec(ngrid,stepvec,offset,gridvec)
 
@@ -48,22 +42,13 @@ subroutine ferdi(l,m,wan,ngrid,offset,stepvec,Rnl)
         call cart2polar(x,y,z,r,theta,phi) 
 !        call ylm(l,m,theta,phi,valylm)
         call Zlm(l,m,theta,phi,valZlm)
-        valZlm_r(i,j,k) = real(valzlm)
-        valZlm_i(i,j,k) = aimag(valzlm)
 !        Rnl(i,j,k) = wan(i,j,k)*valylm
         Rnl(i,j,k) = wan(i,j,k)*valZlm
       end do
     end do
   end do
 
-  fname = 'Zlm_r.xsf'
-  call write_xsf(fname,offset,stepvec,ngrid,valZlm_r)
-
-  fname = 'Zlm_i.xsf'
-  call write_xsf(fname,offset,stepvec,ngrid,valZlm_i)
-
-  deallocate(valZlm_r)
-  deallocate(valZlm_i)
+  deallocate(gridvec)
 
 end subroutine ferdi
 

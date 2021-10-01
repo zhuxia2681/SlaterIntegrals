@@ -12,29 +12,29 @@ subroutine par_read(ifile,fname,form,thr,thrpow,coulpow,uc,&
 
     implicit none
   
-    integer,intent(in) :: ifile
+    integer(4),intent(in) :: ifile
 
     character(20),intent(out) :: fname
     character(10),intent(out) :: form
     logical,intent(out) :: uc,sc,renorm
-    real(dp),intent(out) :: thr
-    integer,intent(out) :: thrpow,coulpow
-    integer,intent(out) :: ucu,scu
-    integer,intent(out) :: l1,l2,m1,m2,info
+    real(8),intent(out) :: thr
+    integer(4),intent(out) :: thrpow,coulpow
+    integer(4),intent(out) :: ucu,scu
+    integer(4),intent(out) :: l1,l2,m1,m2,info
  
     character(30) :: tmp
     character(20) :: s1,s2
-    integer :: rank,size,ierr
+    integer(4) :: rank,size,ierr
   
 
   call mp_info(rank,size,ierr)
 
   rewind(2)
 
-  if (rank == 0) then
+!JDY
+!  if (rank == 0) then
     write(*,*) " read input parameters."
     write(*,*) " ifile",ifile
-  end if
     if (ifile == 2) then
       do 
         read(2,*,end=999) s1,s2
@@ -128,9 +128,8 @@ subroutine par_read(ifile,fname,form,thr,thrpow,coulpow,uc,&
         end if
       end do 
     end if
-  999 if (rank == 0) then
-     write(*,*) " end read parameters."
-  end if
+  999 write(*,*) " end read parameters."
+!  end if
   info = 0
 
 end subroutine par_read
@@ -139,20 +138,19 @@ subroutine par_read_cell(ifile,uco,ucv,sco,scv,info)
 
     implicit none
   
-    integer,intent(in) :: ifile
+    integer(4),intent(in) :: ifile
     character(30) :: tmp
-    real(dp),intent(out) :: uco(3),sco(3),ucv(3,3),scv(3,3)
-    integer,intent(out) :: info
+    real(8),intent(out) :: uco(3),sco(3),ucv(3,3),scv(3,3)
+    integer(4),intent(out) :: info
 
-    integer :: i
-    integer :: rank,size,ierr
+    integer(4) :: i
+    integer(4) :: rank,size,ierr
   
 
   call mp_info(rank,size,ierr)
 
-  if (rank == 0) then
+!  if (rank == 0) then
     write(*,*) " read cell parameters."
-  end if
     rewind(2)
     do 
       read(2,*,end=999) tmp
@@ -193,9 +191,8 @@ subroutine par_read_cell(ifile,uco,ucv,sco,scv,info)
       end if
     end do
 
-999 if (rank == 0) then
-    write(*,*) " end cell parameters."
-  end if
+999 write(*,*) " end cell parameters."
+!  end if
 
   info = 0
 
@@ -208,7 +205,7 @@ subroutine boolchk(boolin,boolout,ierr)
 
   character(10),intent(in) :: boolin
   logical,intent(out) :: boolout
-  integer,intent(out) :: ierr
+  integer(4),intent(out) :: ierr
 
   if (trim(boolin) == "T" .or. trim(boolin) == "True" .or. &
       trim(boolin) == "true" .or. trim(boolin) == "t" .or. &
@@ -231,7 +228,7 @@ subroutine unitchk(unittypein,unittypeout,ierr)
   implicit none
 
   character(10),intent(in) :: unittypein
-  integer,intent(out) :: unittypeout,ierr
+  integer(4),intent(out) :: unittypeout,ierr
 
   if (trim(unittypein) == "bohr") then
     unittypeout = 0
@@ -256,19 +253,19 @@ subroutine read_xsf(fname,ngrid,origin,span,val,stepvec,info)
   implicit none
 
   character(20),intent(in) :: fname
-  integer,intent(out) :: ngrid(3)
-  real(dp),intent(out) :: origin(3),span(3,3),stepvec(3,3)
-  real(dp),allocatable :: tmpval(:,:,:)
-  real(dp),allocatable,intent(out) :: val(:,:,:)
-  integer,intent(out) :: info
+  integer(4),intent(out) :: ngrid(3)
+  real(8),intent(out) :: origin(3),span(3,3),stepvec(3,3)
+  real(8),allocatable :: tmpval(:,:,:)
+  real(8),allocatable,intent(out) :: val(:,:,:)
+  integer(4),intent(out) :: info
 !//
   character(30) :: tmp
-  integer :: i,j,k,ix,iy,iz,tmpgrid(3)
-  real(dp) :: tmpvec(3,3)
-  integer :: rank,size,ierr,flag
+  integer(4) :: i,j,k,ix,iy,iz,tmpgrid(3)
+  real(8) :: tmpvec(3,3)
+  integer(4) :: rank,size,ierr,flag
 
 !//debug
-  real(dp) :: debug
+  real(8) :: debug
 
   rewind(11)
 
@@ -276,6 +273,8 @@ subroutine read_xsf(fname,ngrid,origin,span,val,stepvec,info)
   
   open(11,file=fname,form='formatted',status='old')
 
+!debug
+  write(*,*) " read in "
  
   do 
     read(11,*,end=999) tmp
@@ -300,9 +299,7 @@ subroutine read_xsf(fname,ngrid,origin,span,val,stepvec,info)
     end if
   end do 
 
-999 if (rank == 0) then
-    write(*,*) " read xsf ",trim(fname)," end."
-  end if
+999 write(*,*) " read xsf ",trim(fname)," end."
 
 !JDY: 2021.2.22
 !JDY: 2021.2.24 comment out.
@@ -336,10 +333,6 @@ subroutine read_xsf(fname,ngrid,origin,span,val,stepvec,info)
   close(11)
   info = 0
 
-!debug
-  write(*,*) "val io ",maxval(val(:,:,:))
-  write(*,*) "val io ",minval(val(:,:,:))
-
 end subroutine read_xsf
 
 subroutine write_xsf(fname,origin,stepvec,ngrid,val)
@@ -348,11 +341,11 @@ subroutine write_xsf(fname,origin,stepvec,ngrid,val)
 
   character(20),intent(in) :: fname
   character(20) :: tmpname
-  real(dp),intent(in) :: origin(3),stepvec(3,3)
-  integer,intent(in) :: ngrid(3)
-  real(dp),allocatable :: val(:,:,:)
+  real(8),intent(in) :: origin(3),stepvec(3,3)
+  integer(4),intent(in) :: ngrid(3)
+  real(8),allocatable :: val(:,:,:)
 !local
-  integer :: i,j,k
+  integer(4) :: i,j,k
   
   tmpname = trim(fname)
   open(100,file=tmpname,form='formatted',status='replace')

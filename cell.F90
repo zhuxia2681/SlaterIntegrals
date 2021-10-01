@@ -10,8 +10,8 @@ subroutine volume(vec,vol)
 
   implicit none
 
-  real(dp),intent(in) :: vec(3,3)
-  real(dp),intent(out) :: vol
+  real(8),intent(in) :: vec(3,3)
+  real(8),intent(out) :: vol
 
   vol = abs(vec(1,1)*(vec(2,2)*vec(3,3)-vec(2,2)*vec(1,3))- &
             vec(1,2)*(vec(1,1)*vec(2,3)-vec(2,1)*vec(1,3))+ &
@@ -37,14 +37,14 @@ subroutine cell_set(ngrid,uc,ucu,sfo,sfv,uco,ucv,&
   implicit none
 
   logical,intent(in) :: uc
-  real(dp),intent(in) :: uco(3),ucv(3,3),sfo(3),sfv(3,3)
-  real(dp),intent(out) :: cellvec(3,3)
-  integer,intent(in) :: ucu,ngrid(3)
+  real(8),intent(in) :: uco(3),ucv(3,3),sfo(3),sfv(3,3)
+  real(8),intent(out) :: cellvec(3,3)
+  integer(4),intent(in) :: ucu,ngrid(3)
 
 !JDY local
-  real(dp) :: cellorigin(3)
-  real(dp) :: c1,c2,c3
-  integer(dp) :: i,j,k
+  real(8) :: cellorigin(3)
+  real(8) :: c1,c2,c3
+  integer(4) :: i,j,k
 
   if (uc) then
 ! the case bohr
@@ -91,30 +91,28 @@ subroutine isovalue_scale(power,threshold,isovalue,sff,ngrid)
 
   implicit none
 
-  real(dp),allocatable,intent(in) :: sff(:,:,:)
-  integer,intent(in) :: power,ngrid(3)
-  real(dp),intent(in) :: threshold
-  real(dp),intent(out) :: isovalue
+  real(8),allocatable,intent(in) :: sff(:,:,:)
+  integer(4),intent(in) :: power,ngrid(3)
+  real(8),intent(in) :: threshold
+  real(8),intent(out) :: isovalue
 
-  integer,parameter :: ns = 64
-  real(dp) :: samp,smin,smax,sless
+  integer(4),parameter :: ns = 64
+  real(8) :: samp,smin,smax,sless
 
 ! local
-  integer :: i,j,k,p,ss
-  real(dp) :: sa(ns),sb(ns),sc(ns),sd,se,sf
-  real(dp) :: w
+  integer(4) :: i,j,k,p,ss
+  real(8) :: sa(ns),sb(ns),sc(ns),sd,se,sf
+  real(8) :: w
 !debug
-  integer :: ii
-  real(dp) :: fmax, fmin
+  integer(4) :: ii
  
   smin = INF9
   sless = INF9
   smax = -INF9
 
-  do k = 1, ngrid(3)
+  do i = 1, ngrid(1)
     do j = 1, ngrid(2)
-      do i = 1, ngrid(1)
-
+      do k = 1, ngrid(3)
         if (sff(i,j,k) < smin) then
           smin = sff(i,j,k)
         end if
@@ -128,6 +126,14 @@ subroutine isovalue_scale(power,threshold,isovalue,sff,ngrid)
     end do  
   end do  
 
+!debug
+  write(*,*) 
+  write(*,*) " scalar value info. "
+  write(*,*) " sless ",sless
+  write(*,*) " smin ",smin
+  write(*,*) " smax ",smax
+  write(*,*) 
+  
   if (abs(smax) > abs(smin)) then 
     samp = abs(smax)
   else
@@ -187,13 +193,13 @@ subroutine inversion(n,xx,yy,zz,w)
 
   implicit none
 
-  integer,intent(in) :: n
-  real(dp),intent(in) :: xx(n),yy(n),zz
-  real(dp),intent(out) :: w
+  integer(4),intent(in) :: n
+  real(8),intent(in) :: xx(n),yy(n),zz
+  real(8),intent(out) :: w
 
 !JDY
-  integer :: i,j
-  real(dp) :: a,b,c,s,t,v,u
+  integer(4) :: i,j
+  real(8) :: a,b,c,s,t,v,u
 
   u = INF9
   j = 0
@@ -239,11 +245,11 @@ subroutine trimming(ng,valin,ngout,valout)
 
   implicit none
 
-  integer,intent(in) :: ng(3)
-  integer,intent(out) :: ngout(3)
-  real(dp),allocatable,intent(in) :: valin(:,:,:)
-  real(dp),allocatable,intent(out) :: valout(:,:,:)
-  integer :: i,j,k
+  integer(4),intent(in) :: ng(3)
+  integer(4),intent(out) :: ngout(3)
+  real(8),allocatable,intent(in) :: valin(:,:,:)
+  real(8),allocatable,intent(out) :: valout(:,:,:)
+  integer(4) :: i,j,k
 
   allocate(valout(ng(1)-1,ng(2)-1,ng(3)-1))
 

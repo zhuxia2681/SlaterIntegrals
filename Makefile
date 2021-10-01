@@ -5,8 +5,9 @@ OBJ=cell.o io.o number.o integral.o numerical.o \
 mp.o sli1.o random.o util.o
 
 default: cell io number integral numerical mp sli1\
-	random util 
-	$(FC) $(FLAG) $(INC) scp.F90 $(OBJ) $(LIB)
+	random util
+	$(FC) $(FLAG) $(INC) scp.F90 $(OBJ)
+
 
 io: mp
 	$(FC) $(FLAG) -c io.F90

@@ -34,8 +34,7 @@ program scp
   integer(4) :: ucu,scu
   integer(4) :: rank,ierr,size
 !JDY 2021.2.25 MPI
-  integer(4) :: tag,stat,ii,jj,chkrank
-  integer(4) :: flag1,flag2,flag3
+  integer(4) :: tag,stat,ii,jj
 !//
   real(8) :: vol,origin(3),span(3,3),stepvec(3,3)
   real(8) :: vol1,origin1(3),span1(3,3),stepvec1(3,3)
@@ -113,7 +112,7 @@ program scp
   allocate(ravg(2*NCELL+1,2*NCELL+1,2*NCELL+1))
   ravg = 0.0
 
-  if (rank == 0) then
+!  if (rank == 0) then
     open(2,file='scp.inp',form="formatted",status='old')
     open(8,file='scp.log',form="formatted",status='unknown')
     read(2,*) tmpchar,nfile
@@ -126,12 +125,18 @@ program scp
       if (info /= 0) then
         write(*,*) " error: par_read ifile =",ifile
       end if
+#ifdef PARA
+      call mp_bcast(info,1,ierr)
+#endif
 
       info = 0
       call par_read_cell(ifile,uco,ucv,sco,scv,info)
       if (info /= 0) then
         write(*,*) " error: par_read_cell ifile =",ifile
       end if
+#ifdef PARA
+      call mp_bcast(info,1,ierr)
+#endif
 
       info = 0
       call read_xsf(fname,ngrid,origin,span,val,stepvec,info)
@@ -193,56 +198,54 @@ program scp
         val2 = normedval
       end if
     end do
-  end if
-#ifdef PARA
-!  if (rank == 0) then
+!  end if
 
-  call MPI_Barrier(MPI_COMM_WORLD,ierr)
-  call MPI_Bcast(ngrid1,3,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-  call MPI_Bcast(ngrid2,3,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-!debug
-  write(*,*) " rank ",rank
+#ifdef PARA
   if (rank /= 0) then
     allocate(val1(ngrid1(1),ngrid1(2),ngrid1(3)))
     allocate(val2(ngrid2(1),ngrid2(2),ngrid2(3)))
+    val1 = 0.0
+    val2 = 0.0
   end if
-!    val1 = 0.0
-!    val2 = 0.0
-    do i = 1, ngrid1(1)
-      do j = 1, ngrid1(2)
-        do k = 1, ngrid1(3)
-          call MPI_Bcast(val1(i,j,k),1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-        end do
+  do i = 1, ngrid1(1)
+    do j = 1, ngrid1(2)
+      do k = 1, ngrid1(3)
+        if (rank == 0) then
+          do ii = 1, size -1
+            tag = i + j + k + ii
+            call mp_send(val1(i,j,k),1,ii,tag,ierr)
+!             call mp_bcast(val1(i,j,k),1,ierr)
+          end do
+        else
+          ierr = 1
+          do while (ierr /= 0)
+            call mp_recv(val1(i,j,k),1,tag,stat,ierr)
+          end do
+        end if
       end do
     end do
-    call MPI_Barrier(MPI_COMM_WORLD,ierr)
-    call MPI_Bcast(l1,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-    call MPI_Bcast(l2,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-    call MPI_Bcast(m1,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-    call MPI_Bcast(m2,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-    call MPI_Bcast(origin1,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-    call MPI_Bcast(origin2,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-    do i = 1, 3
-      call MPI_Bcast(stepvec1(i,:),3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-    end do
-    do i = 1, 3
-      call MPI_Bcast(stepvec2(i,:),3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-    end do
-!debug
-if (rank /= 0) then
-  write(*,*) " stepvec1",stepvec1
-  write(*,*) " stepvec2",stepvec2
-end if
-    do i = 1, ngrid2(1)
-      do j = 1, ngrid2(2)
-        do k = 1, ngrid2(3)
-          call MPI_Bcast(val2(i,j,k),1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
-        end do
+  end do
+  do i = 1, ngrid2(1)
+    do j = 1, ngrid2(2)
+      do k = 1, ngrid2(3)
+        if (rank == 0) then
+!             call mp_bcast(val2(i,j,k),1,ierr)
+          do ii = 1, size -1
+            tag = i + j + k + ii + 1000
+            call mp_send(val2(i,j,k),1,ii,tag,ierr)
+          end do
+        else
+          ierr = 1
+          do while (ierr /= 0)
+            call mp_recv(val2(i,j,k),1,tag,stat,ierr)
+          end do
+        end if
       end do
     end do
-    call MPI_Barrier(MPI_COMM_WORLD,ierr)
-!  end if
+  end do
 #endif
+!debug
+write(*,*) " rank,val1(2,2,2)",rank,val1(2,2,2)
 
   if (rank == 0) then
       write(*,*)
@@ -287,7 +290,34 @@ end if
 
 
 #ifdef PARA
-  call MPI_Bcast(offset,3,MPI_REAL,0,MPI_COMM_WORLD,ierr)
+  call mp_bcast(l1,1,ierr)
+  call mp_bcast(l2,1,ierr)
+  call mp_bcast(m1,1,ierr)
+  call mp_bcast(m2,1,ierr)
+  do i = 1, 3
+    call mp_bcast(ngrid1(i),1,ierr)
+    call mp_bcast(ngrid2(i),1,ierr)
+    call mp_bcast(origin1(i),1,ierr)
+    call mp_bcast(origin2(i),1,ierr)
+    call mp_bcast(offset(i),1,ierr)
+  end do
+  do i = 1, 3
+    do j = 1, 3
+      call mp_bcast(stepvec1(i,j),1,ierr)
+      call mp_bcast(stepvec2(i,j),1,ierr)
+    end do
+  end do
+!  call MPI_Bcast(l1,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(l2,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(m1,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(m2,1,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(ngrid1,3,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(ngrid2,3,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(origin1,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(origin2,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(stepvec1,9,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(stepvec2,9,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
+!  call MPI_Bcast(offset,3,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ierr)
 #endif
 
 

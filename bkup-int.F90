@@ -1,7 +1,6 @@
 module integral
 
   use number
-  use numerical
   use cell
   use mp
 
@@ -29,6 +28,7 @@ subroutine scalar_trunc(thr,ngrid,sf,stepvec,sfoin,sfout,sfoout,info)
   nj1 = ngrid(2)
   nk1 = ngrid(3)
   
+
   imin = ni1
   imax = -1
   jmin = nj1
@@ -75,9 +75,12 @@ subroutine scalar_trunc(thr,ngrid,sf,stepvec,sfoin,sfout,sfoout,info)
       end do
     end do
 
-    sfoout(1) = sfoin(1) + stepvec(1,1)*dble(imin-1) + stepvec(2,1)*dble(imin-1)+ stepvec(3,1)*dble(kmin-1)
-    sfoout(2) = sfoin(2) + stepvec(1,2)*dble(imin-1) + stepvec(2,2)*dble(jmin-1)+ stepvec(3,2)*dble(kmin-1)
-    sfoout(3) = sfoin(3) + stepvec(1,3)*dble(imin-1) + stepvec(2,3)*dble(jmin-1)+ stepvec(3,3)*dble(kmin-1)
+    sfoout(1) = sfoin(1) + stepvec(1,1)*dble(imin-1) + stepvec(2,1)*dble(imin-1)+& 
+                         stepvec(3,1)*dble(kmin-1)
+    sfoout(2) = sfoin(2) + stepvec(1,2)*dble(imin-1) + stepvec(2,2)*dble(jmin-1)+& 
+                         stepvec(3,2)*dble(kmin-1)
+    sfoout(3) = sfoin(3) + stepvec(1,3)*dble(imin-1) + stepvec(2,3)*dble(jmin-1)+& 
+                         stepvec(3,3)*dble(kmin-1)
   end if
 
   if (ni2 == ni1 .or. nj2 == nj1 .or. nk2 == nk1) then
@@ -117,6 +120,9 @@ subroutine scalar_norm(coulomb_power,renorm,ngrid,stepvec,sf,&
   sftmp = 0.0
   sfout = 0.0
 
+!debug
+write(8,*) " ngrid",ngrid
+  
   do i = 1, ngrid(1)
     do j = 1, ngrid(2)
       do k = 1, ngrid(3)
@@ -139,12 +145,18 @@ subroutine scalar_norm(coulomb_power,renorm,ngrid,stepvec,sf,&
     do j = 1, ngrid(2)
       do k = 1, ngrid(3)
         ww = ww + sftmp(i,j,k)
+!debug
+write(8,'(3i3,1f16.6)') i,j,k,sftmp(i,j,k)
+
       end do
     end do
   end do
 
   if (ww < EPS9) ierr = -1
 
+!debug
+write(8,'(1f16.6)') ww
+  
   ww = ww * vv
 
   wfnorm = ww
@@ -193,7 +205,8 @@ subroutine check_overlap(rcutoff,FFTgrid1,FFTgrid2,sf1,sf2,stepvec1,stepvec2,&
   do i = 1, 3
     vl1(i) = sqrt(stepvec1(i,1)**2 + stepvec1(i,2)**2 + stepvec1(i,3)**2)
     vl2(i) = sqrt(stepvec2(i,1)**2 + stepvec2(i,2)**2 + stepvec2(i,3)**2)
-    vdotv = stepvec1(i,1) * stepvec2(i,1) + stepvec1(i,2) * stepvec2(i,2) + stepvec1(i,3) * stepvec2(i,3)
+    vdotv = stepvec1(i,1) * stepvec2(i,1) + stepvec1(i,2) * stepvec2(i,2) +&
+            stepvec1(i,3) * stepvec2(i,3)
     vcosv = vdotv / (vl1(i) * vl2(i))            
 
     if (abs(vcosv - 1.0) < EPS9) nplus = nplus + 1
@@ -231,7 +244,9 @@ subroutine check_overlap(rcutoff,FFTgrid1,FFTgrid2,sf1,sf2,stepvec1,stepvec2,&
     r(4,3) = sf2o(3) + stepvec2(iminus,3) * dble(ngrid2 - 1) 
 
     do i = 1, 4
-      vdotr = stepvec1(iminus,1) * r(i,1) + stepvec1(iminus,2) * r(i,2) + stepvec1(iminus,3) * r(i,3) 
+      vdotr = stepvec1(iminus,1) * r(i,1) + &
+              stepvec1(iminus,2) * r(i,2) + &
+              stepvec1(iminus,3) * r(i,3) 
       pp(i) = vdotr / vl1(iminus)
     end do 
 
@@ -288,9 +303,10 @@ subroutine grid_offset(sfo1,stepvec1,sfo2,stepvec2,offset)
 
   do i = 1, 3
     lv2 = stepvec1(i,1)**2 + stepvec1(i,2)**2 + stepvec1(i,3)**2
-    vdotd = stepvec1(i,1)*dd(1) + stepvec1(i,2)*dd(2) + stepvec1(i,3)*dd(3)
+    vdotd = stepvec1(i,1)*dd(1) + stepvec1(i,2)*dd(2) + &
+            stepvec1(i,3)*dd(3)
 
-    call double_to_int(vdotd/lv2, nn(i))
+    nn = int(vdotd/lv2)
 
     dd(1) = dd(1) - stepvec1(i,1)*dble(nn(1))
     dd(2) = dd(2) - stepvec1(i,2)*dble(nn(2))
@@ -307,7 +323,7 @@ subroutine mc_average(offset,v1,v2,ravg)
   implicit none
 
   integer(4) :: rank,size,ierr
-  real(8),intent(in) :: offset(3),v1(3,3),v2(3,3)
+  real(8) :: offset(3),v1(3,3),v2(3,3)
   real(8),allocatable,intent(out) :: ravg(:,:,:)
 ! local
   integer(4) :: i,j,k,l,m,lmin,lmax,navg
@@ -331,14 +347,21 @@ subroutine mc_average(offset,v1,v2,ravg)
 
 #ifdef PARA
   call mp_info(rank,size,ierr)
-  pow = (2*NCELL+1)**3
 #else
   rank = 0
   size = 1
 #endif
 
+  pow = (2*NCELL+1)**3
   allocate(ravg(2*NCELL+1,2*NCELL+1,2*NCELL+1))
   ravg = 0.0
+
+#ifdef LOG
+  write(8,*) " (in mc_average)"
+  write(8,*) " rank",rank
+  write(8,*) " size",size
+#endif
+
 
 #ifdef VERBOSE
   if (rank == 0) then
@@ -346,8 +369,14 @@ subroutine mc_average(offset,v1,v2,ravg)
   end if
 #endif
 
-  call double_to_int(dble(NRAND) * dble(rank) / dble(size),lmin) 
-  call double_to_int(dble(NRAND) * dble(rank+1) / dble(size),lmax) 
+  lmin = int(dble(NRAND) * dble(rank) / dble(size)) 
+  lmax = int(dble(NRAND) * dble(rank + 1) / dble(size)) 
+
+!debug
+write(8,*)
+write(8,*) " lmin",lmin
+write(8,*) " lmax",lmax
+write(8,*)
 
   do i = -NCELL,NCELL
     do j = -NCELL,NCELL
@@ -360,14 +389,12 @@ subroutine mc_average(offset,v1,v2,ravg)
 
   do l = lmin, lmax
     do m = 1, 3
-      call rand(tmp)  
-      rr(m) = tmp - 0.5
+      call random_number(tmp)  
+      rr(m) = dble(tmp)/dble(RAND_MAX) - 0.5
     end do
-
     crand(1) = v2(1,1) * rr(1) + v2(2,1) * rr(2) + v2(3,1) * rr(3)
     crand(2) = v2(1,2) * rr(1) + v2(2,2) * rr(2) + v2(3,2) * rr(3)
     crand(3) = v2(1,3) * rr(1) + v2(2,3) * rr(2) + v2(3,3) * rr(3)
-
     do i = -NCELL,NCELL
       do j = -NCELL,NCELL
         do k = -NCELL,NCELL
@@ -376,19 +403,24 @@ subroutine mc_average(offset,v1,v2,ravg)
           dd(3) = offset(3) + v1(1,3) + dble(i) + v1(2,3) + dble(j) + v1(3,3) + dble(k)
           r2 = (dd(1) - crand(1))**2 + (dd(2) - crand(2))**2 + (dd(3) - crand(3))**2 
           if (r2 > EPS9) then
-            rlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1) = rlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1) + 1.0/sqrt(r2) 
+            rlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1) = rlocal(i+NCELL+1,j+NCELL+1,&
+                   k+NCELL+1) + 1.0/sqrt(r2) 
           else
-            nlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1) = nlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1) - 1 
+            nlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1) = nlocal(i+NCELL+1,j+NCELL+1,&
+                      k+NCELL+1) - 1 
           end if
         end do
       end do
     end do
   end do
 
+!debug
+write(8,*) " chk pt 1"
+
 #ifdef PARA
   do i = 1, size
-    call MPI_ALLREDUCE(nlocal,ndummy,pow,MPI_INTEGER,MPI_SUM,MPI_COMM_WORLD,ierr)
-
+    call MPI_ALLREDUCE(nlocal,ndummy,pow,MPI_INTEGER, &
+             MPI_SUM,MPI_COMM_WORLD,ierr)
     if (ierr /= 0) then
       write(*,*) " error: allreduce failed."
       stop
@@ -398,17 +430,20 @@ subroutine mc_average(offset,v1,v2,ravg)
   do i = -NCELL,NCELL
     do j = -NCELL,NCELL
       do k = -NCELL,NCELL
-        nlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1) = ndummy(i+NCELL+1,j+NCELL+1,k+NCELL+1)
+        nlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1) = &
+              ndummy(i+NCELL+1,j+NCELL+1,k+NCELL+1)
       end do
     end do
   end do
 
-  call MPI_ALLREDUCE(rlocal,rdummy,pow,MPI_DOUBLE_PRECISION,MPI_SUM,MPI_COMM_WORLD,ierr)  
+  call MPI_ALLREDUCE(rlocal,rdummy,pow,MPI_DOUBLE_PRECISION,&
+                MPI_SUM,MPI_COMM_WORLD,ierr)  
     
   do i = -NCELL,NCELL
     do j = -NCELL,NCELL
       do k = -NCELL,NCELL
-        rlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1) = rdummy(i+NCELL+1,j+NCELL+1,k+NCELL+1)
+        rlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1) = &
+               rdummy(i+NCELL+1,j+NCELL+1,k+NCELL+1)
       end do
     end do
   end do
@@ -417,7 +452,18 @@ subroutine mc_average(offset,v1,v2,ravg)
   do i = -NCELL,NCELL
     do j = -NCELL,NCELL
       do k = -NCELL,NCELL
-        ravg(i+NCELL+1,j+NCELL+1,k+NCELL+1) = rlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1)/dble(nlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1))
+        ravg(i+NCELL+1,j+NCELL+1,k+NCELL+1) = &
+              rlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1)/&
+             dble(nlocal(i+NCELL+1,j+NCELL+1,k+NCELL+1))
+      end do
+    end do
+  end do
+
+!debug
+  do i = -NCELL,NCELL
+    do j = -NCELL,NCELL
+      do k = -NCELL,NCELL
+        write(8,*) " ravg",ravg(i+NCELL+1,j+NCELL+1,k+NCELL+1)
       end do
     end do
   end do
@@ -437,35 +483,30 @@ subroutine tab_average(v1,p1,p2,offset,ravg,rinv)
   real(8) :: dd(3)
   real(8),intent(in) :: ravg(:,:,:)
   real(8),intent(out) :: rinv
-!debug
-  integer(4) :: rank,size,ierr
-
-#ifdef PARA
-  call mp_info(rank,size,ierr)
-#endif
 
   dd = 0.0
   do i = 1, 3 
     dd(i) = p1(i) - p2(i) - offset(i) 
   end do 
 
-  
   nn = 0
   do i = 1, 3
     lv2 = v1(i,1)**2 + v1(i,2)**2 + v1(i,3)**2
-    vdotd = v1(i,1)*dd(1) + v1(i,2)*dd(2) + v1(i,3)*dd(3)
-    call double_to_int((vdotd/lv2),nn(i))
-   
+    vdotd = v1(i,1)*dd(1) + v1(i,2)*dd(2) + &
+            v1(i,3)*dd(3)
+    nn(i) = int(vdotd/lv2)
+
     dd(1) = dd(1) - v1(i,1)*dble(nn(1))
     dd(2) = dd(2) - v1(i,2)*dble(nn(2))
     dd(3) = dd(3) - v1(i,3)*dble(nn(3))
   end do
 
-
-  if (abs(dd(1)) .lt. EPS9 .and. abs(dd(2)) .lt. EPS9 .and. abs(dd(3)) .lt. EPS9) then
+  if (abs(dd(1)) .lt. EPS9 .and. abs(dd(2)) .lt. EPS9 .and. & 
+      abs(dd(3)) .lt. EPS9) then
     f_offset = .true.
   end if
-  if (abs(nn(1)) .le. NCELL .and. abs(nn(2)) .le. NCELL .and. abs(nn(3)) .le. NCELL) then
+  if (abs(nn(1)) .le. NCELL .and. abs(nn(2)) .le. NCELL .and. &
+      abs(nn(3)) .le. NCELL) then
     f_range = .true.
   end if
 
@@ -479,7 +520,6 @@ subroutine tab_average(v1,p1,p2,offset,ravg,rinv)
     write(*,*) "Error: f_range failed in tab_average."
     rinv = -1.0
   end if
-
 
 end subroutine tab_average
 
@@ -518,7 +558,6 @@ subroutine coulomb_integral(rank,size,ngrid1,ngrid2,sf1,sf2,stepvec1,stepvec2,&
 !debug
   integer(4) :: cnt
 
-
 !JDY step-volume check
   call volume(stepvec1,vol1)
   call volume(stepvec2,vol2)
@@ -549,31 +588,43 @@ subroutine coulomb_integral(rank,size,ngrid1,ngrid2,sf1,sf2,stepvec1,stepvec2,&
     do j1 = 1, ny 
       do k1 = 1, nz 
 #ifdef PARA
-        if (mod((i1-1)*ny*nz + (j1-1)*nz + (k1-1),size) /= rank) then 
-          cycle
-        end if
+        if (mod((i1-1)*ny*nz + (j1-1)*nz + (k1-1),size) /= rank) cycle
 #endif
 
 #ifdef VERBOSE
         if (rank == 0) then
-          call double_to_int((100.0*dble((i1-1)*ny*nz + (j1-1)*nz + (k1-1))) / dble(nx*ny*nz),pnew)
+          pnew = int(100.0*dble((i1-1)*ny*nz + (j1-1)*nz + (k1-1))) / &
+                     dble(nx*ny*nz)
           if (pnew /= pold) then
             write(*,*) " completed ",pnew," %"
             pold = pnew
           endif
         endif
 #endif
-        p1(1) = origin1(1) + stepvec1(1,1)*dble(i1) + stepvec1(1,2)*dble(j1) + stepvec1(1,3)*dble(k1)
-        p1(2) = origin1(2) + stepvec1(2,1)*dble(i1) + stepvec1(2,2)*dble(j1) + stepvec1(2,3)*dble(k1)
-        p1(3) = origin1(3) + stepvec1(3,1)*dble(i1) + stepvec1(3,2)*dble(j1) + stepvec1(3,3)*dble(k1)
-
+        p1(1) = origin1(1) + stepvec1(1,1)*dble(i1) +&
+                             stepvec1(1,2)*dble(j1) +&
+                             stepvec1(1,3)*dble(k1)
+        p1(2) = origin1(2) + stepvec1(2,1)*dble(i1) +&
+                             stepvec1(2,2)*dble(j1) +&
+                             stepvec1(2,3)*dble(k1)
+        p1(3) = origin1(3) + stepvec1(3,1)*dble(i1) +&
+                             stepvec1(3,2)*dble(j1) +&
+                             stepvec1(3,3)*dble(k1)
         do i2 = 1, nx
           do j2 = 1, ny
             do k2 = 1, nz
-              p2(1) = origin2(1) + stepvec2(1,1)*dble(i2) + stepvec2(1,2)*dble(j2) + stepvec2(1,3)*dble(k2)
-              p2(2) = origin2(2) + stepvec2(2,1)*dble(i2) + stepvec2(2,2)*dble(j2) + stepvec2(2,3)*dble(k2)
-              p2(3) = origin2(3) + stepvec2(3,1)*dble(i2) + stepvec2(3,2)*dble(j2) + stepvec2(3,3)*dble(k2)
-              r2 = (p1(1) - p2(1))**2 + (p1(2) - p2(2))**2 + (p1(3) - p2(3))**2
+              p2(1) = origin2(1) + stepvec2(1,1)*dble(i2) +&
+                                   stepvec2(1,2)*dble(j2) +&
+                                   stepvec2(1,3)*dble(k2)
+              p2(2) = origin2(2) + stepvec2(2,1)*dble(i2) +&
+                                   stepvec2(2,2)*dble(j2) +&
+                                   stepvec2(2,3)*dble(k2)
+              p2(3) = origin2(3) + stepvec2(3,1)*dble(i2) +&
+                                   stepvec2(3,2)*dble(j2) +&
+                                   stepvec2(3,3)*dble(k2)
+              r2 = (p1(1) - p2(1))**2 + (p1(2) - p2(2))**2 + &
+                   (p1(3) - p2(3))**2
+
               if (r2 > r2cutoff) then
                 rinv = 1.0 / sqrt(r2)   
               else
@@ -587,7 +638,7 @@ subroutine coulomb_integral(rank,size,ngrid1,ngrid2,sf1,sf2,stepvec1,stepvec2,&
 
               ww = ww + sf1(i1,j1,k1) * sf2(i2,j2,k2) * rinv
 !debug
-              cnt = cnt + 1
+cnt = cnt + 1
 
             end do  
           end do  
@@ -596,21 +647,24 @@ subroutine coulomb_integral(rank,size,ngrid1,ngrid2,sf1,sf2,stepvec1,stepvec2,&
     end do
   end do
 
-!debug
 write(8,*) " cnt",cnt
 
-#ifdef PARA
-  call mp_barrier(ierr)
-#endif
+!#ifdef PARA
+!if (rank == 0) then
+!  call MPI_Barrier(MPI_COMM_WORLD)
+!end if
+!#endif
 
 
   ww = ww * 0.5 * HARTREE * vol1 * vol2
 
 
-#ifdef PARA
-  call mp_reduce(ww,rdummy,1,ierr)
-  ww = rdummy
-#endif
+!#ifdef PARA
+!  if (rank == 0) then
+!    call MPI_Reduce(ww,rdummy,1,MPI_DOUBLE_PRECISION, MPI_SUM, 0, MPI_COMM_WORLD)
+!    ww = rdummy
+!  end if
+!#endif
 
   energy = ww
 
@@ -637,11 +691,6 @@ subroutine set_cutoff(v1,v2,rcutoff,r2cutoff)
 
   r2cutoff = l2min * dble(NCELL**2)
   rcutoff = sqrt(r2cutoff)
-
-#ifdef PARA
-  call MPI_Bcast(r2cutoff,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD)
-  call MPI_Bcast(rcutoff,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD)
-#endif
 
 end subroutine set_cutoff
 
